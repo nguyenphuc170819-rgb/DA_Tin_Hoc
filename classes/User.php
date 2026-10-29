@@ -53,5 +53,69 @@ class User {
         }
         return false;
     }
+    //Đếm số lượng user
+    public function countCustomers() {
+        return $this->conn->query("SELECT COUNT(*) FROM users WHERE role = 'customer'")->fetchColumn();
+    }
+    //lấy thông tin user
+    public function getAllCustomers() {
+        $query = "SELECT user_id, full_name, email, phone_number, is_active, created_at 
+                  FROM " . $this->table . " WHERE role = 'customer' ORDER BY created_at DESC";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+    // Lấy danh sách toàn bộ Admin và Nhân viên (Staff)
+    public function getStaffAndAdmins() {
+        $query = "SELECT user_id, full_name, email, phone_number, role, is_active, created_at 
+                  FROM " . $this->table . " 
+                  WHERE role IN ('admin', 'staff') 
+                  ORDER BY created_at DESC";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    // Thêm tài khoản Admin hoặc Staff mới (Do Admin tổng tạo)
+    public function addStaffOrAdmin($full_name, $email, $phone_number, $password, $role) {
+        // Kiểm tra email tồn tại chưa
+        $check = $this->conn->prepare("SELECT user_id FROM " . $this->table . " WHERE email = :email LIMIT 1");
+        $check->execute([':email' => $email]);
+        if ($check->rowCount() > 0) {
+            return "Email này đã được sử dụng!";
+        }
+
+        $password_hash = password_hash($password, PASSWORD_BCRYPT);
+        $query = "INSERT INTO " . $this->table . " (full_name, email, phone_number, password_hash, role, is_active) 
+                  VALUES (:full_name, :email, :phone_number, :password_hash, :role, 1)";
+        
+        $stmt = $this->conn->prepare($query);
+        return $stmt->execute([
+            ':full_name' => $full_name,
+            ':email' => $email,
+            ':phone_number' => $phone_number,
+            ':password_hash' => $password_hash,
+            ':role' => $role // 'admin' hoặc 'staff'
+        ]);
+    }
+    // Chỉ cập nhật riêng phân quyền (role)
+    public function updateRole($user_id, $role) {
+        $query = "UPDATE " . $this->table . " SET role = :role WHERE user_id = :user_id";
+        $stmt = $this->conn->prepare($query);
+        return $stmt->execute([
+            ':role' => $role,
+            ':user_id' => $user_id
+        ]);
+    }
+    // Đổi mật khẩu cho tài khoản (dùng cho Admin quản lý nhân sự)
+    public function updatePassword($user_id, $new_password) {
+        $password_hash = password_hash($new_password, PASSWORD_BCRYPT);
+        $query = "UPDATE " . $this->table . " SET password_hash = :password_hash WHERE user_id = :user_id";
+        $stmt = $this->conn->prepare($query);
+        return $stmt->execute([
+            ':password_hash' => $password_hash,
+            ':user_id' => $user_id
+        ]);
+    }
 }
 ?>

@@ -77,5 +77,45 @@ class Order {
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+    public function countOrders() {
+        return $this->conn->query("SELECT COUNT(*) FROM orders")->fetchColumn();
+    }
+
+    // Tính tổng doanh thu đơn hàng hoàn thành
+    public function getTotalRevenue() {
+        $stmt = $this->conn->query("SELECT SUM(final_amount) FROM orders WHERE order_status = 'completed'");
+        return $stmt->fetchColumn() ?: 0;
+    }
+    // Lấy thông tin chung của một đơn hàng theo ID
+    public function getOrderById($order_id) {
+        $query = "SELECT o.*, u.full_name as user_name, u.email 
+                  FROM orders o 
+                  LEFT JOIN users u ON o.user_id = u.user_id 
+                  WHERE o.order_id = :order_id LIMIT 1";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':order_id', $order_id, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    // Lấy danh sách sản phẩm (biến thể size/màu) thuộc đơn hàng đó
+    public function getOrderItems($order_id) {
+        $query = "SELECT oi.*, p.product_name, pv.size, pv.color, pv.sku 
+                  FROM order_items oi
+                  JOIN product_variants pv ON oi.variant_id = pv.variant_id
+                  JOIN products p ON pv.product_id = p.product_id
+                  WHERE oi.order_id = :order_id";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':order_id', $order_id, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+    //lấy thông tin đơn hàng
+    public function getAllOrders() {
+        $query = "SELECT o.*, u.full_name as user_name FROM orders o LEFT JOIN users u ON o.user_id = u.user_id ORDER BY o.created_at DESC";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
 }
 ?>
