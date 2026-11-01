@@ -66,7 +66,7 @@ $brands = $catObj->getAllBrands();
 <head>
     <meta charset="UTF-8">
     <title>Sửa Sản phẩm - Admin</title>
-    <link rel="stylesheet" href="../../css/style.css">
+    <link rel="stylesheet" href="<?php echo BASE_URL; ?>/css/style.css">
 </head>
 <body>
     <div class="admin-container" style="padding: 20px; font-family: Arial, sans-serif; max-width: 600px;">
