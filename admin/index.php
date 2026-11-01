@@ -36,7 +36,7 @@ $total_categories = $categoryObj->countCategories(); // Thêm hàm đếm danh m
     <div class="admin-container" style="padding: 20px; font-family: Arial, sans-serif;">
         <h1>Bảng điều khiển Quản Trị (Dashboard)</h1>
         <hr>
-        <p>Xin chào, <b><?php echo $_SESSION['admin_name'] ?? 'Admin'; ?></b> | <a href="../logout.php">Đăng xuất</a></p>
+        <p>Xin chào, <b><?php echo $_SESSION['admin_name'] ?? 'Admin'; ?></b> | <a href="<?php echo BASE_URL; ?>/module/user/logout.php">Đăng xuất</a></p>
         
         <!-- Menu điều hướng -->
         <div class="nav-menu" style="margin: 20px 0; background: #eee; padding: 10px; border-radius: 5px;">
@@ -47,7 +47,7 @@ $total_categories = $categoryObj->countCategories(); // Thêm hàm đếm danh m
             <a href="order/index.php">Đơn hàng</a> | 
             <a href="customer/index.php">Khách hàng</a> |
             <a href="user/index.php">Nhân viên</a> |
-            <a href=" ../index.php" target="_blank">Xem Website 🌐</a>
+            <a href=" <?php echo BASE_URL; ?>/index.php" target="_blank">Xem Website 🌐</a>
         </div>
 
         <!-- Các hộp thống kê KPI -->
