@@ -93,7 +93,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     
     <div class="links">
         <p>Chưa có tài khoản? <a href="register.php">Đăng ký ngay</a></p>
-        <p><a href="../../index.php">← Quay lại trang chủ</a></p>
+        <p><a href="<?php echo BASE_URL; ?>/index.php">← Quay lại trang chủ</a></p>
     </div>
 </div>
 

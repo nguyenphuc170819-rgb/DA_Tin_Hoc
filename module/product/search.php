@@ -1,27 +1,17 @@
 <?php
-if (!defined("ROOT"))
-{
-	echo "You don't have permission to access this page!"; exit;	
-}
+if (!defined("ROOT")) { exit; }
+require_once ROOT . '/classes/Database.php';
+require_once ROOT . '/classes/Product.php';
 
-$tensach = getIndex("proname");
-$data = [             
-	"SP11" => ["L1","Sách 11", 1000, "h11.jpg"], 
-	"SP12"=>["L1","Sách 12", 1000, "h12a.jpg;h12b.jpg"],
-	"SP21" => ["L2","Sách 21", 2000, "h21a.jpg;h21b.jpg"], 
-	"SP22"=>["L2","Sách 22", 2000, "h22.jpg"],
-	"SP31" => ["L3","Sách 31", 3000, "h31.jpg"], 
-	"SP32"=>["L3","Sách 32", 3000, "h32a.jpg;h32b.jpg;h32c.jpg"]
-  ];
-  $ten="";
-  $hinh="";
-  foreach ($data as $row) {
-	if($row[1]==$tensach){
-		$ten=$row[1];
-		$hinh=$row[3];
-	}
-  }
+$db = (new Database())->connect();
+$productModel = new Product($db);
+
+$keyword = isset($_GET["keyword"]) ? trim($_GET["keyword"]) : '';
+$products = !empty($keyword) ? $productModel->searchProducts($keyword) : [];
 ?>
-<div class="productList">
-	Tên và hình ảnh của các Sách được tìm thấy:<br> <?php echo $ten."<br>"; echo $hinh?>
+<div class="container my-3">
+    <h3 class="fw-bold mb-4 pb-2 border-bottom">
+        <i class="fa fa-search"></i> Kết quả tìm kiếm cho: "<?= htmlspecialchars($keyword) ?>"
+    </h3>
+    <?php include __DIR__ . '/_product_grid.php'; ?>
 </div>
