@@ -6,6 +6,7 @@ define('SITE_NAME', 'SHOE STORE');
 
 // Đường dẫn tuyệt đối đến thư mục gốc dự án
 define('ROOT_PATH', dirname(__DIR__));
+define('ROOT', ROOT_PATH);
 
 // Đường dẫn URL của website
 define('BASE_URL', '/Wed_Shop_Giay');

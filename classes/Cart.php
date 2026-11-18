@@ -1,74 +1,129 @@
 <?php
 class Cart {
-    
-    // Khởi động session nếu chưa có
-    public function __construct() {
+    private $conn;
+
+    public function __construct($db) {
+        $this->conn = $db;
         if (session_status() == PHP_SESSION_NONE) {
             session_start();
         }
     }
 
-    // Thêm sản phẩm (theo biến thể variant_id: size & màu) vào giỏ hàng
-    public function addToCart($variant_id, $quantity, $product_data) {
-        if (!isset($_SESSION['cart'])) {
-            $_SESSION['cart'] = [];
-        }
+    // Lấy hoặc tạo cart_id của user dựa vào user_id
+    public function getCartIdByUserId($user_id) {
+        $query = "SELECT cart_id FROM carts WHERE user_id = :user_id LIMIT 1";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':user_id', $user_id, PDO::PARAM_INT);
+        $stmt->execute();
+        $cart = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        // Nếu sản phẩm với size/màu này đã có trong giỏ thì tăng số lượng
-        if (isset($_SESSION['cart'][$variant_id])) {
-            $_SESSION['cart'][$variant_id]['quantity'] += $quantity;
+        if ($cart) {
+            return $cart['cart_id'];
         } else {
-            // Nếu chưa có thì thêm mới vào giỏ
-            $_SESSION['cart'][$variant_id] = [
-                'variant_id' => $variant_id,
-                'product_name' => $product_data['product_name'],
-                // Ưu tiên lấy giá riêng của biến thể, nếu không có lấy giá gốc sản phẩm
-                'price' => !empty($product_data['price']) ? $product_data['price'] : $product_data['base_price'],
-                'size' => $product_data['size'],
-                'color' => $product_data['color'],
-                'image_url' => $product_data['image_url'],
-                'quantity' => $quantity
-            ];
+            // Nếu chưa có giỏ hàng, tạo mới cho user này
+            $insert = "INSERT INTO carts (user_id) VALUES (:user_id)";
+            $stmt_insert = $this->conn->prepare($insert);
+            $stmt_insert->bindParam(':user_id', $user_id, PDO::PARAM_INT);
+            $stmt_insert->execute();
+            return $this->conn->lastInsertId();
         }
     }
 
-    // Cập nhật số lượng sản phẩm trong giỏ hàng
-    public function updateQuantity($variant_id, $quantity) {
-        if (isset($_SESSION['cart'][$variant_id])) {
-            if ($quantity <= 0) {
-                unset($_SESSION['cart'][$variant_id]); // Xóa luôn nếu số lượng <= 0
-            } else {
-                $_SESSION['cart'][$variant_id]['quantity'] = $quantity;
-            }
+    // Thêm sản phẩm (biến thể) vào giỏ hàng trong CSDL
+    public function addToCart($user_id, $variant_id, $quantity = 1) {
+        $cart_id = $this->getCartIdByUserId($user_id);
+
+        // Kiểm tra xem biến thể giày này đã có trong giỏ hàng chưa
+        $check = "SELECT cart_item_id, quantity FROM cart_items WHERE cart_id = :cart_id AND variant_id = :variant_id LIMIT 1";
+        $stmt_check = $this->conn->prepare($check);
+        $stmt_check->execute([
+            ':cart_id' => $cart_id,
+            ':variant_id' => $variant_id
+        ]);
+        $item = $stmt_check->fetch(PDO::FETCH_ASSOC);
+
+        if ($item) {
+            // Nếu có rồi thì cộng dồn số lượng
+            $new_quantity = $item['quantity'] + $quantity;
+            $update = "UPDATE cart_items SET quantity = :quantity WHERE cart_item_id = :cart_item_id";
+            $stmt_update = $this->conn->prepare($update);
+            return $stmt_update->execute([
+                ':quantity' => $new_quantity,
+                ':cart_item_id' => $item['cart_item_id']
+            ]);
+        } else {
+            // Chưa có thì thêm mới dòng vào cart_items
+            $insert = "INSERT INTO cart_items (cart_id, variant_id, quantity) VALUES (:cart_id, :variant_id, :quantity)";
+            $stmt_insert = $this->conn->prepare($insert);
+            return $stmt_insert->execute([
+                ':cart_id' => $cart_id,
+                ':variant_id' => $variant_id,
+                ':quantity' => $quantity
+            ]);
         }
+    }
+
+    // Lấy toàn bộ sản phẩm trong giỏ hàng của user kèm thông tin chi tiết biến thể và sản phẩm
+    public function getCartItems($user_id) {
+        $cart_id = $this->getCartIdByUserId($user_id);
+
+        $query = "SELECT ci.cart_item_id, ci.quantity, pv.variant_id, pv.sku, pv.size, pv.color, 
+                         COALESCE(pv.price, p.base_price) as price, pv.stock_quantity, 
+                         p.product_name, pv.image_url as variant_image, pv.product_id
+                  FROM cart_items ci
+                  JOIN product_variants pv ON ci.variant_id = pv.variant_id
+                  JOIN products p ON pv.product_id = p.product_id
+                  WHERE ci.cart_id = :cart_id";
+        
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':cart_id', $cart_id, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    // Cập nhật số lượng sản phẩm trong giỏ
+    public function updateQuantity($cart_item_id, $quantity) {
+        if ($quantity <= 0) {
+            return $this->removeCartItem($cart_item_id);
+        }
+        $query = "UPDATE cart_items SET quantity = :quantity WHERE cart_item_id = :cart_item_id";
+        $stmt = $this->conn->prepare($query);
+        return $stmt->execute([
+            ':quantity' => $quantity,
+            ':cart_item_id' => $cart_item_id
+        ]);
     }
 
     // Xóa một sản phẩm khỏi giỏ hàng
-    public function removeItem($variant_id) {
-        if (isset($_SESSION['cart'][$variant_id])) {
-            unset($_SESSION['cart'][$variant_id]);
-        }
+    public function removeCartItem($cart_item_id) {
+        $query = "DELETE FROM cart_items WHERE cart_item_id = :cart_item_id";
+        $stmt = $this->conn->prepare($query);
+        return $stmt->execute([':cart_item_id' => $cart_item_id]);
     }
 
-    // Lấy toàn bộ sản phẩm trong giỏ hàng
-    public function getCartItems() {
-        return isset($_SESSION['cart']) ? $_SESSION['cart'] : [];
+    // Xóa sạch giỏ hàng của user sau khi đặt hàng thành công
+    public function clearCart($user_id) {
+        $cart_id = $this->getCartIdByUserId($user_id);
+        $query = "DELETE FROM cart_items WHERE cart_id = :cart_id";
+        $stmt = $this->conn->prepare($query);
+        return $stmt->execute([':cart_id' => $cart_id]);
     }
 
-    // Tính tổng tiền giỏ hàng
-    public function getTotalPrice() {
-        $total = 0;
-        if (isset($_SESSION['cart'])) {
-            foreach ($_SESSION['cart'] as $item) {
-                $total += $item['price'] * $item['quantity'];
-            }
-        }
-        return $total;
+    // Lấy variant_id đầu tiên còn hàng của một sản phẩm
+    public function getDefaultVariantId($product_id) {
+        $query = "SELECT variant_id FROM product_variants WHERE product_id = :product_id AND stock_quantity > 0 LIMIT 1";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute([':product_id' => $product_id]);
+        $variant = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $variant ? $variant['variant_id'] : null;
     }
 
-    // Xóa sạch giỏ hàng sau khi đặt hàng thành công
-    public function clearCart() {
-        unset($_SESSION['cart']);
+    // Lấy tất cả biến thể của cùng một sản phẩm (phục vụ việc đổi size/màu trong giỏ hàng)
+    public function getVariantsByProductId($product_id) {
+        $query = "SELECT variant_id, size, color, stock_quantity FROM product_variants WHERE product_id = :product_id AND stock_quantity > 0";
+        $stmt = $this->conn->prepare($query);
+        $stmt->execute([':product_id' => $product_id]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 }
 ?>

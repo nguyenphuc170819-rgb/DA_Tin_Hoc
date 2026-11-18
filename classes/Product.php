@@ -10,7 +10,8 @@ class Product {
 
     // Lấy danh sách sản phẩm mới nhất ra trang chủ
     public function getLatestProducts($limit = 8) {
-        $query = "SELECT p.*, b.brand_name, c.category_name 
+        $query = "SELECT p.*, b.brand_name, c.category_name,
+                  (SELECT image_url FROM product_images WHERE product_images.product_id = p.product_id AND is_primary = 1 LIMIT 1) as primary_image 
                   FROM " . $this->table_products . " p
                   LEFT JOIN brands b ON p.brand_id = b.brand_id
                   LEFT JOIN categories c ON p.category_id = c.category_id
@@ -18,11 +19,29 @@ class Product {
                   ORDER BY p.product_id DESC LIMIT :limit";
         
         $stmt = $this->conn->prepare($query);
-        $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
+        $stmt->bindValue(':limit', (int)$limit, PDO::PARAM_INT);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
-
+    // HÀM LẤY SẢN PHẨM BÁN CHẠY (Phục vụ cho trang spbc.php) ---
+    public function getBestSellerProducts($limit = 8) {
+        $query = "SELECT p.*, b.brand_name, c.category_name,
+                  (SELECT image_url FROM product_images WHERE product_images.product_id = p.product_id AND is_primary = 1 LIMIT 1) as primary_image,
+                  COALESCE(SUM(oi.quantity), 0) as total_sold
+                  FROM " . $this->table_products . " p
+                  LEFT JOIN brands b ON p.brand_id = b.brand_id
+                  LEFT JOIN categories c ON p.category_id = c.category_id
+                  LEFT JOIN product_variants pv ON p.product_id = pv.product_id
+                  LEFT JOIN order_items oi ON pv.variant_id = oi.variant_id
+                  WHERE p.is_active = 1 
+                  GROUP BY p.product_id
+                  ORDER BY total_sold DESC, p.product_id DESC LIMIT :limit";
+        
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindValue(':limit', (int)$limit, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
     // Lấy chi tiết một đôi giày theo ID
     public function getProductById($product_id) {
         $query = "SELECT p.*, b.brand_name, c.category_name 
@@ -46,6 +65,44 @@ class Product {
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
+    // Lấy danh sách hình ảnh theo product_id
+    public function getImagesByProductId($product_id) {
+        $query = "SELECT * FROM product_images WHERE product_id = :product_id ORDER BY is_primary DESC";
+        $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(':product_id', $product_id, PDO::PARAM_INT);
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    public function getRelatedProducts($category_id, $current_product_id, $limit = 4) {
+    $query = "SELECT p.*, b.brand_name, c.category_name, 
+              (SELECT image_url FROM product_images WHERE product_images.product_id = p.product_id AND is_primary = 1 LIMIT 1) as image
+              FROM " . $this->table_products . " p
+              LEFT JOIN brands b ON p.brand_id = b.brand_id
+              LEFT JOIN categories c ON p.category_id = c.category_id
+              WHERE p.category_id = :category_id 
+                AND p.product_id != :current_id 
+                AND p.is_active = 1
+              ORDER BY RAND() 
+              LIMIT :limit";
+
+    $stmt = $this->conn->prepare($query);
+    $stmt->bindParam(':category_id', $category_id, PDO::PARAM_INT);
+    $stmt->bindParam(':current_id', $current_product_id, PDO::PARAM_INT);
+    $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
+    $stmt->execute();
+    
+    $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Đồng bộ trường base_price sang price nếu các view cũ của bạn đang gọi $item['price']
+    foreach ($products as &$pro) {
+        $pro['price'] = $pro['base_price'];
+    }
+    
+    return $products;
+}
+
     // Lấy danh sách sản phẩm theo Danh mục (Category)
     public function getProductsByCategory($category_id) {
         $query = "SELECT p.*, b.brand_name, c.category_name 
