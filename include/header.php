@@ -1,5 +1,8 @@
 <?php
 if (!defined("ROOT")) { exit; }
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 ?>
 <!DOCTYPE html>
 <html lang="vi">
@@ -23,12 +26,12 @@ if (!defined("ROOT")) { exit; }
                 <i class="fa fa-phone me-1"></i> Hotline:| <i class="fa fa-envelope me-1"></i> 
             </div>
             <div>
-                <?php if (isset($_SESSION['user_name'])): ?>
-                    <span class="me-3"><i class="fa fa-user me-1"></i> Xin chào, <strong><?= $_SESSION['user_name'] ?></strong></span>
+                <?php if (isset($_SESSION['full_name'])): ?>
+                    <span class="me-3"><i class="fa fa-user me-1"></i> Xin chào, <strong> <a href="<?= BASE_URL ?>/index.php?mod=order" class="btn btn-outline-light position-relative"> <?= $_SESSION['full_name'] ?> </strong></span>
                     <a href="<?= BASE_URL ?>/index.php?mod=user&action=logout" class="text-white text-decoration-none">Đăng xuất</a>
                 <?php else: ?>
-                    <a href="<?= BASE_URL ?>/index.php?mod=user&action=login" class="text-white text-decoration-none me-3">Đăng nhập</a>
-                    <a href="<?= BASE_URL ?>/index.php?mod=user&action=register" class="text-white text-decoration-none">Đăng ký</a>
+                    <a href="<?= BASE_URL ?>/module/user/login.php" class="text-white text-decoration-none me-3">Đăng nhập</a>
+                    <a href="<?= BASE_URL ?>/module/user/register.php" class="text-white text-decoration-none">Đăng ký</a>
                 <?php endif; ?>
             </div>
         </div>

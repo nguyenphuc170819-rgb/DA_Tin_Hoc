@@ -1,4 +1,10 @@
 <?php
+
+if (session_status() === PHP_SESSION_NONE) {
+    ob_start();
+    session_start();
+}
+
 require_once __DIR__ . '/config/config.php';
 require_once ROOT_PATH . '/include/function.php';
 
@@ -28,23 +34,6 @@ require_once ROOT_PATH . '/include/header.php';
                 echo "<h2 class='text-center text-muted my-4'>Chào mừng đến với Shoe Store</h2>";
             }
             ?>
-        </div>
-    </div>
-
-    <!-- CỘT PHẢI: Tiện ích / Tìm kiếm nhanh (Chiếm 2 cột) -->
-    <div class="col-lg-2 d-none d-lg-block">
-        <div class="card shadow-sm border-0 p-3 bg-white">
-            <h5 class="card-title fs-6 fw-bold border-bottom pb-2 mb-3">
-                <i class="fa fa-search text-primary"></i> Tìm kiếm
-            </h5>
-            <form action="<?= BASE_URL ?>/mod.php" method="GET">
-                <input type="hidden" name="module" value="product" />
-                <input type="hidden" name="action" value="search" />
-                <div class="mb-2">
-                    <input type="text" name="keyword" class="form-control form-control-sm" placeholder="Tên giày..." required />
-                </div>
-                <button type="submit" class="btn btn-dark btn-sm w-100">Tìm</button>
-            </form>
         </div>
     </div>
 

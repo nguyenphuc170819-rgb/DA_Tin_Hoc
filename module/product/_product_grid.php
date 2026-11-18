@@ -30,8 +30,8 @@ if (!empty($products)): ?>
                             <?= format_currency($row['base_price']) ?>
                         </p>
                         <div class="mt-auto d-flex gap-2">
-                            <a href="<?= BASE_URL ?>/index.php?mod=product&ac=detail&id=<?= $row['product_id'] ?>" class="btn btn-outline-dark btn-sm flex-grow-1">Xem</a>
-                            <a href="<?= BASE_URL ?>/index.php?mod=cart&ac=add&id=<?= $row['product_id'] ?>" class="btn btn-dark btn-sm"><i class="fa fa-cart-plus"></i></a>
+                            <a href="<?= BASE_URL ?>/index.php?mod=product&action=detail&id=<?= $row['product_id'] ?>" class="btn btn-outline-dark btn-sm flex-grow-1">Xem</a>
+                            <a href="<?= BASE_URL ?>/index.php?mod=cart&action=add&id=<?= $row['product_id'] ?>" class="btn btn-dark btn-sm"><i class="fa fa-cart-plus"></i></a>
                         </div>
                     </div>
                 </div>

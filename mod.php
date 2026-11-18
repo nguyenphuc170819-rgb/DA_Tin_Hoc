@@ -1,24 +1,31 @@
 <?php
 if (!defined("ROOT")) {
-    echo "You don't have permission to access this page!"; exit;    
+    echo "You don't have permission to access this page!"; 
+    exit;    
 }
 
-// Lấy module chính từ URL, mặc định có thể để trống hoặc về info/trang chủ
-$mod = isset($_GET["mod"]) ? $_GET["mod"] : "";
+// 1. Lấy module chính từ URL (mặc định để trống hoặc về info)
+$mod = isset($_GET["mod"]) ? trim($_GET["mod"]) : "";
 
-// Xác định file điều phối của từng module
+// 2. Xác định file điều phối của từng module
 switch ($mod) {
     case "info":
         $path = ROOT . "/module/info/index.php";
         break;
     case "product":
-        $path = ROOT . "/module/product/index.php"; // Chuyển giao sang file index.php trong thư mục product
-        break;
-    case "news":
-        $path = ROOT . "/module/news/index.php";
+        $path = ROOT . "/module/index.php"; 
         break;
     case "cart":
-        $path = ROOT . "/module/cart/index.php";
+        $path = ROOT . "/module/index.php"; 
+        break;
+    case "news":
+        $path = ROOT . "/module/index.php"; 
+        break;
+    case "user":
+        $path = ROOT . "/module/index.php"; 
+        break;
+    case "order":
+        $path = ROOT . "/module/index.php"; 
         break;
     case "search":
         $path = ROOT . "/module/product/search.php";
@@ -28,7 +35,7 @@ switch ($mod) {
         break;
 }
 
-// Include file module tương ứng
+// 3. Include file điều phối tương ứng
 if (file_exists($path)) {
     include $path;
 } else {
